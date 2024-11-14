@@ -5,10 +5,9 @@ import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TextView
-import android.widget.Toast
+import android.view.View
+import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -22,7 +21,15 @@ import com.google.firebase.auth.GoogleAuthProvider
 import kotlin.random.Random
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var startButton: Button
+
+    private lateinit var signInWithGoogleButton: Button
+    private lateinit var guestButton: Button
+    private lateinit var profileIcon: ImageView
+    private lateinit var settingsIcon: ImageView
+    private lateinit var welcomeTextView: TextView
+    private lateinit var startGameButton: Button
+    private lateinit var auth: FirebaseAuth
+    private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var questionTextView: TextView
     private lateinit var scoreTextView: TextView
     private lateinit var timerTextView: TextView
@@ -30,9 +37,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var answerEditText: EditText
     private lateinit var submitButton: Button
     private lateinit var playAgainButton: Button
-    private lateinit var googleSignInButton: Button
-    private lateinit var auth: FirebaseAuth
-    private lateinit var googleSignInClient: GoogleSignInClient
     private val RC_SIGN_IN = 1
 
     // Game variables
@@ -54,7 +58,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        startButton = findViewById(R.id.startButton)
+        // Initialize views
+        signInWithGoogleButton = findViewById(R.id.signInWithGoogleButton)
+        guestButton = findViewById(R.id.guestButton)
+        profileIcon = findViewById(R.id.profileIcon)
+        settingsIcon = findViewById(R.id.settingsIcon)
+        welcomeTextView = findViewById(R.id.welcomeTextView)
+        startGameButton = findViewById(R.id.startGameButton)
         questionTextView = findViewById(R.id.questionTextView)
         scoreTextView = findViewById(R.id.scoreTextView)
         timerTextView = findViewById(R.id.timerTextView)
@@ -62,7 +72,7 @@ class MainActivity : AppCompatActivity() {
         answerEditText = findViewById(R.id.answerEditText)
         submitButton = findViewById(R.id.submitButton)
         playAgainButton = findViewById(R.id.playAgainButton)
-        googleSignInButton = findViewById(R.id.googleSignInButton)
+
         auth = FirebaseAuth.getInstance()
 
         correctSound = MediaPlayer.create(this, R.raw.correct_sound)
@@ -78,14 +88,23 @@ class MainActivity : AppCompatActivity() {
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        googleSignInButton.setOnClickListener {
+        signInWithGoogleButton.setOnClickListener {
             signIn()
         }
 
-        startButton.setOnClickListener {
-            startButton.visibility = Button.GONE
-            showGameUI()
-            startGame()
+        guestButton.setOnClickListener {
+            setupGuestUser()
+            displayGameUI()
+            startGame() // Start the game as a guest
+        }
+
+        profileIcon.setOnClickListener {
+            showMenu()
+        }
+
+        startGameButton.setOnClickListener {
+            displayGameUI()
+            startGame() // Start the game when logged in
         }
 
         submitButton.setOnClickListener {
@@ -98,7 +117,109 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun signIn() {
+        val signInIntent: Intent = googleSignInClient.signInIntent
+        startActivityForResult(signInIntent, RC_SIGN_IN)
+    }
+
+    private fun setupGuestUser() {
+        displayUserInterface("Guest")
+        saveUserLocally("Guest")
+    }
+
+    private fun saveUserLocally(userName: String) {
+        val editor = preferences.edit()
+        editor.putString("last_logged_in_user", userName)
+        editor.apply()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == RC_SIGN_IN) {
+            val task: Task<GoogleSignInAccount> = GoogleSignIn.getSignedInAccountFromIntent(data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                firebaseAuthWithGoogle(account)
+            } catch (e: ApiException) {
+                Toast.makeText(this, "Sign-In Failed", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun firebaseAuthWithGoogle(account: GoogleSignInAccount?) {
+        if (account != null) {
+            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+            auth.signInWithCredential(credential)
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        val user = auth.currentUser
+                        displayUserInterface(user?.displayName ?: "User")
+                        saveUserLocally(user?.displayName ?: "User")
+                    } else {
+                        Toast.makeText(this, "Firebase Authentication Failed", Toast.LENGTH_SHORT).show()
+                    }
+                }
+        }
+    }
+
+    private fun displayUserInterface(userName: String) {
+        signInWithGoogleButton.visibility = View.GONE
+        guestButton.visibility = View.GONE
+
+        profileIcon.visibility = View.VISIBLE
+        settingsIcon.visibility = View.VISIBLE
+        welcomeTextView.visibility = View.VISIBLE
+        startGameButton.visibility = View.VISIBLE
+
+        welcomeTextView.text = "Welcome, $userName!"
+    }
+
+    private fun showMenu() {
+        val options = arrayOf("High Score", "Logout")
+        val builder = AlertDialog.Builder(this)
+        builder.setItems(options) { dialog, which ->
+            when (which) {
+                0 -> showHighScores()
+                1 -> logoutUser()
+            }
+        }
+        builder.show()
+    }
+
+    private fun showHighScores() {
+        val highScores = getTop10HighScores() // Placeholder function for high scores retrieval
+        val highScoresText = highScores.joinToString("\n") { "Score: $it" }
+
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Top 10 High Scores")
+        builder.setMessage(highScoresText)
+        builder.setPositiveButton("Close") { dialog, _ ->
+            dialog.dismiss()
+        }
+        builder.show()
+    }
+
+    private fun logoutUser() {
+        auth.signOut()
+        googleSignInClient.signOut().addOnCompleteListener {
+            // Reset UI to initial state
+            profileIcon.visibility = View.GONE
+            settingsIcon.visibility = View.GONE
+            welcomeTextView.visibility = View.GONE
+            startGameButton.visibility = View.GONE
+
+            signInWithGoogleButton.visibility = View.VISIBLE
+            guestButton.visibility = View.VISIBLE
+        }
+    }
+
+    private fun getTop10HighScores(): List<Int> {
+        // Placeholder function - Replace with actual high score logic
+        return listOf(100, 95, 90, 85, 80, 75, 70, 65, 60, 55)
+    }
+
     private fun startGame() {
+        // Implement the game start logic here
         score = 0
         comboCount = 0
         difficultyLevel = 1
@@ -111,13 +232,17 @@ class MainActivity : AppCompatActivity() {
         submitButton.isEnabled = true
     }
 
-    private fun showGameUI() {
-        scoreTextView.visibility = TextView.VISIBLE
-        timerTextView.visibility = TextView.VISIBLE
-        questionTextView.visibility = TextView.VISIBLE
-        answerEditText.visibility = EditText.VISIBLE
-        submitButton.visibility = Button.VISIBLE
-        leaderboardTextView.visibility = TextView.VISIBLE
+    private fun displayGameUI() {
+        scoreTextView.visibility = View.VISIBLE
+        timerTextView.visibility = View.VISIBLE
+        questionTextView.visibility = View.VISIBLE
+        answerEditText.visibility = View.VISIBLE
+        submitButton.visibility = View.VISIBLE
+        leaderboardTextView.visibility = View.VISIBLE
+    }
+
+    private fun updateScore() {
+        scoreTextView.text = "Score: $score"
     }
 
     private fun generateQuestion() {
@@ -156,6 +281,33 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
+    private fun updateTimer() {
+        val secondsLeft = (timeLeft / 1000).toInt()
+        timerTextView.text = "Time: $secondsLeft"
+    }
+
+    private fun gameOver() {
+        if (score > highScore) {
+            highScore = score
+            preferences.edit().putInt("high_score", highScore).apply()
+            Toast.makeText(this, "New High Score!", Toast.LENGTH_SHORT).show()
+        }
+        updateLeaderboard()
+        timerTextView.text = "Time's up!"
+        submitButton.isEnabled = false
+        playAgainButton.visibility = Button.VISIBLE
+        questionTextView.text = "Game Over! Your score: $score\nHigh Score: $highScore"
+    }
+
+    private fun updateLeaderboard() {
+        var scores = preferences.getStringSet("leaderboard", mutableSetOf())?.toMutableList() ?: mutableListOf()
+        scores.add(score.toString())
+        scores.sortByDescending { it.toInt() }
+        if (scores.size > 3) scores = scores.take(3).toMutableList()
+        preferences.edit().putStringSet("leaderboard", scores.toSet()).apply()
+        leaderboardTextView.text = "Leaderboard:\n" + scores.joinToString("\n")
+    }
+
     private fun checkAnswer() {
         val answer = answerEditText.text.toString().toIntOrNull()
         if (answer == correctAnswer) {
@@ -183,95 +335,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateScore() {
-        scoreTextView.text = "Score: $score"
-    }
-
-    private fun updateTimer() {
-        val secondsLeft = (timeLeft / 1000).toInt()
-        timerTextView.text = "Time: $secondsLeft"
-    }
-
-    private fun updateLeaderboard() {
-        var scores = preferences.getStringSet("leaderboard", mutableSetOf())?.toMutableList() ?: mutableListOf()
-        scores.add(score.toString())
-        scores.sortByDescending { it.toInt() }
-        if (scores.size > 3) scores = scores.take(3).toMutableList()
-        preferences.edit().putStringSet("leaderboard", scores.toSet()).apply()
-        leaderboardTextView.text = "Leaderboard:\n" + scores.joinToString("\n")
-    }
-
-    private fun gameOver() {
-        if (score > highScore) {
-            highScore = score
-            preferences.edit().putInt("high_score", highScore).apply()
-            Toast.makeText(this, "New High Score!", Toast.LENGTH_SHORT).show()
-        }
-        updateLeaderboard()
-        timerTextView.text = "Time's up!"
-        submitButton.isEnabled = false
-        playAgainButton.visibility = Button.VISIBLE
-        questionTextView.text = "Game Over! Your score: $score\nHigh Score: $highScore"
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         correctSound.release()
         incorrectSound.release()
     }
-    private fun signIn() {
-        val signInIntent: Intent = googleSignInClient.signInIntent
-        startActivityForResult(signInIntent, RC_SIGN_IN)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (requestCode == RC_SIGN_IN) {
-            val task: Task<GoogleSignInAccount> = GoogleSignIn.getSignedInAccountFromIntent(data)
-            handleSignInResult(task)
-        }
-    }
-
-    private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
-        try {
-            val account = completedTask.getResult(ApiException::class.java)
-            firebaseAuthWithGoogle(account)
-        } catch (e: ApiException) {
-            // Sign-in failed
-            updateUI(null)
-            Toast.makeText(this, "Sign-In Failed", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun firebaseAuthWithGoogle(account: GoogleSignInAccount?) {
-        if (account != null) {
-            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-            auth.signInWithCredential(credential)
-                .addOnCompleteListener(this) { task ->
-                    if (task.isSuccessful) {
-                        // Sign-in success
-                        val user = auth.currentUser
-                        updateUI(user)
-                    } else {
-                        // Sign-in failed, get the error
-                        val exception = task.exception
-                        Toast.makeText(this, "Firebase Authentication Failed: ${exception?.message}", Toast.LENGTH_SHORT).show()
-                        updateUI(null)
-                    }
-                }
-        }
-    }
-
-    private fun updateUI(user: FirebaseUser?) {
-        if (user != null) {
-            Toast.makeText(this, "Welcome, ${user.displayName}", Toast.LENGTH_SHORT).show()
-            leaderboardTextView.visibility = TextView.VISIBLE
-            leaderboardTextView.text = "User: ${user.displayName}\n" + leaderboardTextView.text
-        } else {
-            leaderboardTextView.visibility = TextView.GONE
-        }
-    }
-
-    // Rest of the game code (unchanged)
 }
