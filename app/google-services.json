@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "991997951297",
+    "project_id": "quickmathgame-feaf8",
+    "storage_bucket": "quickmathgame-feaf8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:991997951297:android:320292ea2662efe4b6f5c0",
+        "android_client_info": {
+          "package_name": "com.example.quickmathgame"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "991997951297-f7nh8nsdmusnc29mroo254ttgl4skd2s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.quickmathgame",
+            "certificate_hash": "10973168e05747d2839e82a51fa6cef78bd1c071"
+          }
+        },
+        {
+          "client_id": "991997951297-e040atm278tm5m09gmfg38mfbq1dpl1u.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCr6Jlh8a23HiIjv4y9UPJfQNl_gx5KuyE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "991997951297-e040atm278tm5m09gmfg38mfbq1dpl1u.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

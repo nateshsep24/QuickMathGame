@@ -1,0 +1,99 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1D1D1D"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Google Sign-In Button -->
+    <Button
+        android:id="@+id/googleSignInButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Sign In with Google" />
+
+    <!-- Start Button -->
+    <Button
+        android:id="@+id/startButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Start Game" />
+
+    <!-- Score Display -->
+    <TextView
+        android:id="@+id/scoreTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Score: 0"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:visibility="gone" />
+
+    <!-- Timer Display -->
+    <TextView
+        android:id="@+id/timerTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Time: 30"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:visibility="gone" />
+
+    <!-- Question Display -->
+    <TextView
+        android:id="@+id/questionTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Question"
+        android:textColor="#FFFFFF"
+        android:textSize="32sp"
+        android:visibility="gone" />
+
+    <!-- Answer Input -->
+    <EditText
+        android:id="@+id/answerEditText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="#FFFFFF"
+        android:hint="Enter Answer"
+        android:inputType="numberSigned"
+        android:padding="8dp"
+        android:textColor="#FFFFFF"
+        android:visibility="gone" />
+
+    <!-- Submit Button -->
+    <Button
+        android:id="@+id/submitButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Submit"
+        android:visibility="gone" />
+
+    <!-- Play Again Button -->
+    <Button
+        android:id="@+id/playAgainButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Play Again"
+        android:visibility="gone" />
+
+    <!-- Leaderboard -->
+    <TextView
+        android:id="@+id/leaderboardTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Leaderboard:\n"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:visibility="gone" />
+
+</LinearLayout>
