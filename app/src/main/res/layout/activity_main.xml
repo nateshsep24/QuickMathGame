@@ -1,183 +1,189 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:padding="16dp"
-    android:background="#1D1D1D"
-    android:gravity="center">
+    android:background="#1D1D1D">
 
-    <!-- Profile and Settings Row -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_horizontal">
-
-        <!-- Profile Icon -->
-        <ImageView
-            android:id="@+id/profileIcon"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:src="@drawable/ic_profile"
-            android:visibility="gone" />
-
-        <!-- Settings Icon -->
-        <ImageView
-            android:id="@+id/settingsIcon"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:src="@drawable/ic_settings"
-            android:visibility="gone" />
-    </LinearLayout>
-
-
-    <!-- Google Sign-In Button -->
-    <Button
-        android:id="@+id/signInWithGoogleButton"
-        style="@style/CustomButtonStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="Sign In with Google" />
-
-    <!-- Guest Button -->
-    <Button
-        android:id="@+id/guestButton"
-        style="@style/CustomButtonStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Continue as Guest" />
-
-    <!-- Welcome Text -->
-    <TextView
-        android:id="@+id/welcomeTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Welcome, User!"
-        android:textSize="24sp"
-        android:textColor="#FFFFFF"
+    <!-- Profile Icon at Top Left -->
+    <ImageView
+        android:id="@+id/profileIcon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/default_profile"
+        android:scaleType="centerCrop"
         android:visibility="gone"
-        android:layout_marginTop="24dp" />
-
-    <!-- Start Game Button -->
-    <Button
-        android:id="@+id/startGameButton"
-        style="@style/PrimaryGameButtonStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Start Game"
-        android:visibility="gone" />
-
-    <!-- Game Info Row (Score and Timer) -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_horizontal"
-        android:layout_marginTop="24dp">
-
-        <!-- Score Display -->
-        <TextView
-            android:id="@+id/scoreTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Score: 0"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
-            android:visibility="gone" />
-
-        <!-- Timer Display -->
-        <TextView
-            android:id="@+id/timerTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:text="Time: 30"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <!-- Question Display -->
-    <TextView
-        android:id="@+id/questionTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Question"
-        android:textColor="#FFFFFF"
-        android:textSize="36sp"
-        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="16dp"
         android:layout_marginTop="16dp" />
 
-    <!-- Answer Input -->
-    <EditText
-        android:id="@+id/answerEditText"
+    <!-- Settings Icon at Top Right -->
+    <ImageView
+        android:id="@+id/settingsIcon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_settings"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="16dp" />
+
+    <!-- Centered Content: Sign In, Guest, Welcome Message, and Game UI -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:hint="Enter Answer"
-        android:inputType="numberSigned"
-        android:padding="12dp"
-        android:textColor="#FFFFFF"
-        android:textSize="18sp"
-        android:backgroundTint="#FFFFFF"
-        android:layout_marginTop="16dp"
-        android:visibility="gone" />
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        app:layout_constraintTop_toBottomOf="@id/profileIcon"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <!-- Submit Button -->
-    <Button
-        android:id="@+id/submitButton"
-        style="@style/PrimaryGameButtonStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Submit"
-        android:layout_marginTop="16dp"
-        android:visibility="gone" />
-
-    <!-- Play Again Button -->
-    <Button
-        android:id="@+id/playAgainButton"
-        style="@style/PrimaryGameButtonStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Play Again"
-        android:layout_marginTop="16dp"
-        android:visibility="gone" />
-
-    <!-- Back to Home Button -->
-    <Button
-        android:id="@+id/backToHomeButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Back to Home"
-        android:visibility="gone" />
-
-
-    <!-- Leaderboard Display -->
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:layout_margin="16dp"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="4dp"
-        app:cardBackgroundColor="#2C3E50"> <!-- Set the card background color here -->
-
-        <TextView
-            android:id="@+id/leaderboardTextView"
-            android:layout_width="match_parent"
+        <!-- Sign In with Google Button -->
+        <Button
+            android:id="@+id/signInWithGoogleButton"
+            style="@style/CustomButtonStyle"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Leaderboard:\n"
+            android:text="Sign In with Google"
+            android:layout_marginTop="24dp" />
+
+        <!-- Guest Button -->
+        <Button
+            android:id="@+id/guestButton"
+            style="@style/CustomButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Continue as Guest"
+            android:layout_marginTop="16dp" />
+
+        <!-- Welcome Text -->
+        <TextView
+            android:id="@+id/welcomeTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Welcome, User!"
+            android:textSize="24sp"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="32dp"
+            android:visibility="gone" />
+
+        <!-- Start Game Button -->
+        <Button
+            android:id="@+id/startGameButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="START GAME"
+            android:backgroundTint="#6200EE"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+        <!-- Score and Timer Row -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_horizontal"
+            android:layout_marginTop="24dp">
+
+            <TextView
+                android:id="@+id/scoreTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Score: 0"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/timerTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:text="Time: 30"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Question Display -->
+        <TextView
+            android:id="@+id/questionTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Question"
+            android:textColor="#FFFFFF"
+            android:textSize="30sp"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+        <!-- Answer Input -->
+        <EditText
+            android:id="@+id/answerEditText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="Enter Answer"
+            android:inputType="numberSigned"
+            android:padding="12dp"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
-            android:padding="12dp"
+            android:backgroundTint="#FFFFFF"
+            android:layout_marginTop="16dp"
             android:visibility="gone" />
-    </androidx.cardview.widget.CardView>
 
+        <!-- Submit Button -->
+        <Button
+            android:id="@+id/submitButton"
+            style="@style/PrimaryGameButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Submit"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
 
+        <!-- Play Again Button -->
+        <Button
+            android:id="@+id/playAgainButton"
+            style="@style/PrimaryGameButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Play Again"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
 
-</LinearLayout>
+        <!-- Back to Home Button -->
+        <Button
+            android:id="@+id/backToHomeButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Back to Home"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+        <!-- Leaderboard Display -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_margin="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="#2C3E50">
+
+            <TextView
+                android:id="@+id/leaderboardTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Leaderboard:\n"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:padding="12dp"
+                android:visibility="gone" />
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

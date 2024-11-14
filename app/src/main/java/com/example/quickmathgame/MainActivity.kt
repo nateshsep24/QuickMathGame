@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -47,7 +48,7 @@ class MainActivity : AppCompatActivity() {
     private var timeLeft = timeLimit
     private var correctAnswer = 0
     private val operators = listOf("+", "-", "*")
-    private lateinit var timer: CountDownTimer
+    private var timer: CountDownTimer? = null
     private lateinit var correctSound: MediaPlayer
     private lateinit var incorrectSound: MediaPlayer
     private lateinit var preferences: SharedPreferences
@@ -116,22 +117,86 @@ class MainActivity : AppCompatActivity() {
     private fun displayUserInterface(userName: String) {
         signInWithGoogleButton.visibility = View.GONE
         guestButton.visibility = View.GONE
-
         profileIcon.visibility = View.VISIBLE
         settingsIcon.visibility = View.VISIBLE
         welcomeTextView.visibility = View.VISIBLE
         startGameButton.visibility = View.VISIBLE
-
         welcomeTextView.text = "Welcome, $userName!"
     }
 
+    private fun showMenu() {
+        val options = arrayOf("High Score", "Logout")
+        AlertDialog.Builder(this)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> showHighScores()
+                    1 -> logoutUser()
+                }
+            }.show()
+    }
+    private fun showConfirmationDialog() {
+        AlertDialog.Builder(this)
+            .setMessage("Are you sure you want to go back to the home screen?")
+            .setPositiveButton("Yes") { _, _ -> resetToHomeScreen() }
+            .setNegativeButton("No") { dialog, _ -> dialog.dismiss() }
+            .show()
+    }
+    private fun showHighScores() {
+        // Retrieve the top 5 scores from SharedPreferences
+        val scores = preferences.getStringSet("leaderboard", mutableSetOf())?.map { it.toInt() }?.sortedDescending() ?: listOf()
+        // Format scores for display
+        val scoresText = if (scores.isEmpty()) {
+            "No high scores yet!"
+        } else {
+            scores.joinToString("\n") { "Score: $it" }
+        }
+        // Display the scores in an AlertDialog
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Top 5 High Scores")
+        builder.setMessage(scoresText)
+        builder.setPositiveButton("Close") { dialog, _ ->
+            dialog.dismiss()
+        }
+        builder.show()
+    }
+    private fun logoutUser() {
+        // Sign out from Firebase and Google
+        auth.signOut()
+        googleSignInClient.signOut().addOnCompleteListener {
+            // Cancel any active timer
+            timer?.cancel()
+            // Reset game variables and UI states
+            resetGameData()
+            // Ensure all game-related UI elements are hidden
+            hideGameUI()
+            // Reset any text fields or error messages
+            answerEditText.text.clear()
+            answerEditText.error = null
+            questionTextView.text = ""
+            timerTextView.text = "Time: 0"
+            scoreTextView.text = "Score: 0"
+            // Show the initial login screen
+            showInitialLoginScreen()
+        }
+    }
+    private fun resetToHomeScreen() {
+        scoreTextView.visibility = View.GONE
+        timerTextView.visibility = View.GONE
+        questionTextView.visibility = View.GONE
+        answerEditText.visibility = View.GONE
+        submitButton.visibility = View.GONE
+        playAgainButton.visibility = View.GONE
+        backToHomeButton.visibility = View.GONE
+        leaderboardTextView.visibility = View.GONE
+
+        welcomeTextView.visibility = View.VISIBLE
+        startGameButton.visibility = View.VISIBLE
+    }
+
     private fun setupGuestUser() {
-        // Display guest user interface with welcome message and start button
         displayUserInterface("Guest")
         saveUserLocally("Guest")
-        // Hide any game-related UI elements if visible
         hideGameUI()
-        // Show the "Start Game" button instead of directly starting the game
         startGameButton.visibility = View.VISIBLE
         welcomeTextView.visibility = View.VISIBLE
         profileIcon.visibility = View.VISIBLE
@@ -163,6 +228,16 @@ class MainActivity : AppCompatActivity() {
                     val user = auth.currentUser
                     displayUserInterface(user?.displayName ?: "User")
                     saveUserLocally(user?.displayName ?: "User")
+
+                    // Load profile picture using Glide
+                    val profilePictureUrl = user?.photoUrl
+                    if (profilePictureUrl != null) {
+                        Glide.with(this)
+                            .load(profilePictureUrl)
+                            .circleCrop() // This makes the image circular
+                            .placeholder(R.drawable.default_profile)
+                            .into(profileIcon)
+                    }
                 } else {
                     Toast.makeText(this, "Firebase Authentication Failed", Toast.LENGTH_SHORT).show()
                 }
@@ -170,83 +245,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showMenu() {
-        val options = arrayOf("High Score", "Logout")
-        AlertDialog.Builder(this)
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> showHighScores()
-                    1 -> logoutUser()
-                }
-            }.show()
-    }
-
-    private fun showHighScores() {
-        val highScores = getTop10HighScores()
-        val highScoresText = highScores.joinToString("\n") { "Score: $it" }
-
-        AlertDialog.Builder(this)
-            .setTitle("Top 10 High Scores")
-            .setMessage(highScoresText)
-            .setPositiveButton("Close") { dialog, _ -> dialog.dismiss() }
-            .show()
-    }
-
-    private fun logoutUser() {
-        // Sign out from Firebase and Google
-        auth.signOut()
-        googleSignInClient.signOut().addOnCompleteListener {
-            // Cancel any active timer
-            if (::timer.isInitialized) {
-                timer.cancel()
-            }
-            // Reset game variables
-            resetGameData()
-            // Hide game-related UI elements
-            hideGameUI()
-            // Show initial login screen
-            showInitialLoginScreen()
-        }
-    }
-
-    private fun resetToSignInScreen() {
-        profileIcon.visibility = View.GONE
-        settingsIcon.visibility = View.GONE
-        welcomeTextView.visibility = View.GONE
-        startGameButton.visibility = View.GONE
-
-        signInWithGoogleButton.visibility = View.VISIBLE
-        guestButton.visibility = View.VISIBLE
-    }
-
-    private fun getTop10HighScores(): List<Int> {
-        return listOf(100, 95, 90, 85, 80, 75, 70, 65, 60, 55)
-    }
-
     private fun resetGame() {
-        // Reset game variables
         score = 0
         comboCount = 0
         difficultyLevel = 1
-        timeLimit = 30000L
         timeLeft = timeLimit
         consecutiveCorrectCount = 0
 
-        // Update the score and timer display for a fresh game start
         scoreTextView.text = "Score: $score"
-        timerTextView.text = "Time: ${timeLimit / 1000}"
+        timerTextView.text = "Time: ${timeLeft / 1000}"
         questionTextView.text = ""
         answerEditText.text.clear()
 
-        // Hide start game button and display game UI
         startGameButton.visibility = View.GONE
         showGameUI()
-
-        // Generate the first question and start the timer
         generateQuestion()
         startTimer()
     }
-
     private fun showGameUI() {
         startGameButton.visibility = View.GONE
         welcomeTextView.visibility = View.GONE
@@ -258,86 +273,18 @@ class MainActivity : AppCompatActivity() {
         playAgainButton.visibility = View.GONE
         backToHomeButton.visibility = View.GONE
     }
+    private fun startTimer() {
+        timer?.cancel() // Cancel any existing timer to avoid overlap
+        timer = object : CountDownTimer(timeLeft, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                timeLeft = millisUntilFinished
+                updateTimer()
+            }
 
-    private fun showConfirmationDialog() {
-        AlertDialog.Builder(this)
-            .setMessage("Are you sure you want to go back to the home screen?")
-            .setPositiveButton("Yes") { _, _ -> resetToHomeScreen() }
-            .setNegativeButton("No") { dialog, _ -> dialog.dismiss() }
-            .show()
-    }
-
-    private fun resetToHomeScreen() {
-        scoreTextView.visibility = View.GONE
-        timerTextView.visibility = View.GONE
-        questionTextView.visibility = View.GONE
-        answerEditText.visibility = View.GONE
-        submitButton.visibility = View.GONE
-        playAgainButton.visibility = View.GONE
-        backToHomeButton.visibility = View.GONE
-        leaderboardTextView.visibility = View.GONE
-
-        welcomeTextView.visibility = View.VISIBLE
-        startGameButton.visibility = View.VISIBLE
-    }
-
-    private fun gameOver() {
-        timer.cancel()
-        timerTextView.text = "Time's up!"
-        questionTextView.text = "Game Over! Your score: $score\nHigh Score: $highScore"
-
-        if (score > highScore) {
-            highScore = score
-            preferences.edit().putInt("high_score", highScore).apply()
-            Toast.makeText(this, "New High Score!", Toast.LENGTH_SHORT).show()
-        }
-        updateLeaderboard()
-
-        playAgainButton.visibility = View.VISIBLE
-        backToHomeButton.visibility = View.VISIBLE
-        leaderboardTextView.visibility = View.VISIBLE
-        answerEditText.visibility = View.GONE
-        submitButton.visibility = View.GONE
-    }
-
-    private fun hideGameUI() {
-        // Hide all game-related UI elements
-        scoreTextView.visibility = View.GONE
-        timerTextView.visibility = View.GONE
-        questionTextView.visibility = View.GONE
-        answerEditText.visibility = View.GONE
-        submitButton.visibility = View.GONE
-        playAgainButton.visibility = View.GONE
-        backToHomeButton.visibility = View.GONE
-        leaderboardTextView.visibility = View.GONE
-        profileIcon.visibility = View.GONE
-        settingsIcon.visibility = View.GONE
-        welcomeTextView.visibility = View.GONE
-        startGameButton.visibility = View.GONE
-    }
-
-    private fun resetGameData() {
-        score = 0
-        comboCount = 0
-        difficultyLevel = 1
-        timeLimit = 30000L
-        timeLeft = timeLimit
-        consecutiveCorrectCount = 0
-        highScore = preferences.getInt("high_score", 0)
-    }
-
-    private fun showInitialLoginScreen() {
-        // Show only the initial login options (Google Sign-In and Guest buttons)
-        signInWithGoogleButton.visibility = View.VISIBLE
-        guestButton.visibility = View.VISIBLE
-    }
-
-    private fun updateLeaderboard() {
-        val scores = preferences.getStringSet("leaderboard", mutableSetOf())?.toMutableList() ?: mutableListOf()
-        scores.add(score.toString())
-        scores.sortByDescending { it.toInt() }
-        preferences.edit().putStringSet("leaderboard", scores.take(3).toSet()).apply()
-        leaderboardTextView.text = "Leaderboard:\n" + scores.joinToString("\n")
+            override fun onFinish() {
+                gameOver()
+            }
+        }.start()
     }
 
     private fun checkAnswer() {
@@ -350,8 +297,8 @@ class MainActivity : AppCompatActivity() {
             correctSound.start()
 
             if (consecutiveCorrectCount == 5) {
-                timeLeft += 20000L
-                startTimer()
+                timeLeft += 20000L // Add 20 seconds to the remaining time
+                startTimer() // Restart the timer with the updated timeLeft
                 consecutiveCorrectCount = 0
                 Toast.makeText(this, "Bonus Time! +20 seconds", Toast.LENGTH_SHORT).show()
             }
@@ -389,17 +336,49 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startTimer() {
-        timer = object : CountDownTimer(timeLeft, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
-                timeLeft = millisUntilFinished
-                updateTimer()
-            }
+    private fun gameOver() {
+        timer?.cancel()
+        timerTextView.text = "Time's up!"
+        questionTextView.text = "Game Over! Your score: $score\nHigh Score: $highScore"
 
-            override fun onFinish() {
-                gameOver()
-            }
-        }.start()
+        if (score > highScore) {
+            highScore = score
+            preferences.edit().putInt("high_score", highScore).apply()
+            Toast.makeText(this, "New High Score!", Toast.LENGTH_SHORT).show()
+        }
+        playAgainButton.visibility = View.VISIBLE
+        backToHomeButton.visibility = View.VISIBLE
+        answerEditText.visibility = View.GONE
+        submitButton.visibility = View.GONE
+    }
+
+    private fun showInitialLoginScreen() {
+        signInWithGoogleButton.visibility = View.VISIBLE
+        guestButton.visibility = View.VISIBLE
+    }
+
+    private fun hideGameUI() {
+        scoreTextView.visibility = View.GONE
+        timerTextView.visibility = View.GONE
+        questionTextView.visibility = View.GONE
+        answerEditText.visibility = View.GONE
+        submitButton.visibility = View.GONE
+        playAgainButton.visibility = View.GONE
+        backToHomeButton.visibility = View.GONE
+        leaderboardTextView.visibility = View.GONE
+        profileIcon.visibility = View.GONE
+        settingsIcon.visibility = View.GONE
+        welcomeTextView.visibility = View.GONE
+        startGameButton.visibility = View.GONE
+    }
+
+    private fun resetGameData() {
+        score = 0
+        comboCount = 0
+        difficultyLevel = 1
+        timeLeft = timeLimit
+        consecutiveCorrectCount = 0
+        highScore = preferences.getInt("high_score", 0)
     }
 
     private fun updateTimer() {
@@ -410,5 +389,6 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         correctSound.release()
         incorrectSound.release()
+        timer?.cancel()
     }
 }
