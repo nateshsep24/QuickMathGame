@@ -5,7 +5,9 @@ import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.Vibrator
 import android.view.View
+import android.view.animation.AnimationUtils
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -16,7 +18,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlin.random.Random
 
@@ -37,6 +38,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var answerEditText: EditText
     private lateinit var submitButton: Button
     private lateinit var playAgainButton: Button
+    private lateinit var backToHomeButton: Button
     private val RC_SIGN_IN = 1
 
     // Game variables
@@ -72,6 +74,7 @@ class MainActivity : AppCompatActivity() {
         answerEditText = findViewById(R.id.answerEditText)
         submitButton = findViewById(R.id.submitButton)
         playAgainButton = findViewById(R.id.playAgainButton)
+        backToHomeButton = findViewById(R.id.backToHomeButton)
 
         auth = FirebaseAuth.getInstance()
 
@@ -103,8 +106,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         startGameButton.setOnClickListener {
-            displayGameUI()
-            startGame() // Start the game when logged in
+            resetGame()
         }
 
         submitButton.setOnClickListener {
@@ -112,8 +114,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         playAgainButton.setOnClickListener {
-            playAgainButton.visibility = Button.GONE
-            startGame()
+            resetGame()
+        }
+        backToHomeButton.setOnClickListener {
+            showConfirmationDialog()
         }
     }
 
@@ -177,7 +181,7 @@ class MainActivity : AppCompatActivity() {
     private fun showMenu() {
         val options = arrayOf("High Score", "Logout")
         val builder = AlertDialog.Builder(this)
-        builder.setItems(options) { dialog, which ->
+        builder.setItems(options) { _, which ->
             when (which) {
                 0 -> showHighScores()
                 1 -> logoutUser()
@@ -187,7 +191,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showHighScores() {
-        val highScores = getTop10HighScores() // Placeholder function for high scores retrieval
+        val highScores = getTop10HighScores()
         val highScoresText = highScores.joinToString("\n") { "Score: $it" }
 
         val builder = AlertDialog.Builder(this)
@@ -202,7 +206,6 @@ class MainActivity : AppCompatActivity() {
     private fun logoutUser() {
         auth.signOut()
         googleSignInClient.signOut().addOnCompleteListener {
-            // Reset UI to initial state
             profileIcon.visibility = View.GONE
             settingsIcon.visibility = View.GONE
             welcomeTextView.visibility = View.GONE
@@ -214,12 +217,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getTop10HighScores(): List<Int> {
-        // Placeholder function - Replace with actual high score logic
         return listOf(100, 95, 90, 85, 80, 75, 70, 65, 60, 55)
     }
 
     private fun startGame() {
-        // Implement the game start logic here
         score = 0
         comboCount = 0
         difficultyLevel = 1
@@ -230,6 +231,75 @@ class MainActivity : AppCompatActivity() {
         generateQuestion()
         startTimer()
         submitButton.isEnabled = true
+        playAgainButton.visibility = View.VISIBLE
+        backToHomeButton.visibility = View.VISIBLE
+    }
+
+    private fun showConfirmationDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setMessage("Are you sure you want to go back to the home screen?")
+            .setPositiveButton("Yes") { dialog, id ->
+                // Action to go back to the home screen
+                resetToHomeScreen()
+            }
+            .setNegativeButton("No") { dialog, id ->
+                // Dismiss the dialog
+                dialog.dismiss()
+            }
+        builder.create().show()
+    }
+
+    private fun resetGame() {
+        // Reset game variables
+        score = 0
+        comboCount = 0
+        difficultyLevel = 1
+        timeLimit = 30000L
+        timeLeft = timeLimit
+        consecutiveCorrectCount = 0
+
+        // Update UI elements for a fresh game start
+        scoreTextView.text = "Score: $score"
+        timerTextView.text = "Time: ${timeLimit / 1000}"
+        questionTextView.text = ""
+        answerEditText.text.clear()
+
+        // Set visibility of UI elements
+        scoreTextView.visibility = View.VISIBLE
+        timerTextView.visibility = View.VISIBLE
+        questionTextView.visibility = View.VISIBLE
+        answerEditText.visibility = View.VISIBLE
+        submitButton.visibility = View.VISIBLE
+
+        // Hide Play Again and Back to Home buttons
+        playAgainButton.visibility = View.GONE
+        backToHomeButton.visibility = View.GONE
+
+        // Start the game
+        generateQuestion()
+        startTimer()
+    }
+
+    private fun resetToHomeScreen() {
+        // Hide all game-related elements
+        scoreTextView.visibility = View.GONE
+        timerTextView.visibility = View.GONE
+        questionTextView.visibility = View.GONE
+        answerEditText.visibility = View.GONE
+        submitButton.visibility = View.GONE
+        playAgainButton.visibility = View.GONE
+        backToHomeButton.visibility = View.GONE
+        leaderboardTextView.visibility = View.GONE
+
+        // Show only the welcome message and start game button
+        welcomeTextView.visibility = View.VISIBLE
+        startGameButton.visibility = View.VISIBLE
+
+        // Reset any game-specific data if necessary
+        score = 0
+        timeLeft = timeLimit
+        consecutiveCorrectCount = 0
+        comboCount = 0
     }
 
     private fun displayGameUI() {
@@ -287,16 +357,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun gameOver() {
+        // Stop the timer and show game over message
+        timer.cancel()
+        timerTextView.text = "Time's up!"
+        questionTextView.text = "Game Over! Your score: $score\nHigh Score: $highScore"
+
+        // Check and update high score
         if (score > highScore) {
             highScore = score
             preferences.edit().putInt("high_score", highScore).apply()
             Toast.makeText(this, "New High Score!", Toast.LENGTH_SHORT).show()
         }
         updateLeaderboard()
-        timerTextView.text = "Time's up!"
-        submitButton.isEnabled = false
-        playAgainButton.visibility = Button.VISIBLE
-        questionTextView.text = "Game Over! Your score: $score\nHigh Score: $highScore"
+
+        // Show the "Play Again" and "Back to Home" buttons
+        playAgainButton.visibility = View.VISIBLE
+        backToHomeButton.visibility = View.VISIBLE
     }
 
     private fun updateLeaderboard() {
