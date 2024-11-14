@@ -63,6 +63,7 @@ class MainActivity : AppCompatActivity() {
         initializeAuth()
         initializeSounds()
         loadHighScore()
+        checkLoginState()
 
         signInWithGoogleButton.setOnClickListener { signIn() }
         guestButton.setOnClickListener { setupGuestUser() }
@@ -109,12 +110,33 @@ class MainActivity : AppCompatActivity() {
         highScore = preferences.getInt("high_score", 0)
     }
 
+    private fun checkLoginState() {
+        val userName = preferences.getString("last_logged_in_user", null)
+        val isGuest = preferences.getBoolean("is_guest_user", false)
+        val profilePictureUrl = preferences.getString("profile_picture_url", null)
+
+        if (userName != null) {
+            displayUserInterface(userName, profilePictureUrl)
+            if (isGuest) {
+                setupGuestUser()
+            } else {
+                setupGoogleUser()
+            }
+        } else {
+            showInitialLoginScreen()
+        }
+    }
+
+    private fun setupGoogleUser() {
+        preferences.edit().putBoolean("is_guest_user", false).apply()
+    }
+
     private fun signIn() {
         val signInIntent: Intent = googleSignInClient.signInIntent
         startActivityForResult(signInIntent, RC_SIGN_IN)
     }
 
-    private fun displayUserInterface(userName: String) {
+    private fun displayUserInterface(userName: String, profilePictureUrl: String? = null) {
         signInWithGoogleButton.visibility = View.GONE
         guestButton.visibility = View.GONE
         profileIcon.visibility = View.VISIBLE
@@ -122,6 +144,15 @@ class MainActivity : AppCompatActivity() {
         welcomeTextView.visibility = View.VISIBLE
         startGameButton.visibility = View.VISIBLE
         welcomeTextView.text = "Welcome, $userName!"
+
+        // Load profile picture if URL is available
+        profilePictureUrl?.let {
+            Glide.with(this)
+                .load(it)
+                .circleCrop() // Circular image
+                .placeholder(R.drawable.default_profile)
+                .into(profileIcon)
+        }
     }
 
     private fun showMenu() {
@@ -167,14 +198,15 @@ class MainActivity : AppCompatActivity() {
             timer?.cancel()
             // Reset game variables and UI states
             resetGameData()
-            // Ensure all game-related UI elements are hidden
             hideGameUI()
-            // Reset any text fields or error messages
-            answerEditText.text.clear()
-            answerEditText.error = null
-            questionTextView.text = ""
-            timerTextView.text = "Time: 0"
-            scoreTextView.text = "Score: 0"
+            // Clear saved user information in SharedPreferences
+            preferences.edit()
+                .remove("last_logged_in_user")
+                .remove("is_guest_user")
+                .remove("profile_picture_url")
+                .apply()
+            // Set profile icon to a default image
+            profileIcon.setImageResource(R.drawable.default_profile)
             // Show the initial login screen
             showInitialLoginScreen()
         }
@@ -195,7 +227,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupGuestUser() {
         displayUserInterface("Guest")
-        saveUserLocally("Guest")
+        preferences.edit().putBoolean("is_guest_user", true).apply()
         hideGameUI()
         startGameButton.visibility = View.VISIBLE
         welcomeTextView.visibility = View.VISIBLE
@@ -203,8 +235,11 @@ class MainActivity : AppCompatActivity() {
         settingsIcon.visibility = View.VISIBLE
     }
 
-    private fun saveUserLocally(userName: String) {
-        preferences.edit().putString("last_logged_in_user", userName).apply()
+    private fun saveUserLocally(userName: String, profilePictureUrl: String?) {
+        preferences.edit()
+            .putString("last_logged_in_user", userName)
+            .putString("profile_picture_url", profilePictureUrl)
+            .apply()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -226,18 +261,11 @@ class MainActivity : AppCompatActivity() {
             auth.signInWithCredential(credential).addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     val user = auth.currentUser
-                    displayUserInterface(user?.displayName ?: "User")
-                    saveUserLocally(user?.displayName ?: "User")
-
-                    // Load profile picture using Glide
-                    val profilePictureUrl = user?.photoUrl
-                    if (profilePictureUrl != null) {
-                        Glide.with(this)
-                            .load(profilePictureUrl)
-                            .circleCrop() // This makes the image circular
-                            .placeholder(R.drawable.default_profile)
-                            .into(profileIcon)
-                    }
+                    val userName = user?.displayName ?: "User"
+                    val profilePictureUrl = user?.photoUrl.toString()
+                    displayUserInterface(userName, profilePictureUrl)
+                    saveUserLocally(userName, profilePictureUrl)
+                    setupGoogleUser()
                 } else {
                     Toast.makeText(this, "Firebase Authentication Failed", Toast.LENGTH_SHORT).show()
                 }
@@ -355,6 +383,10 @@ class MainActivity : AppCompatActivity() {
     private fun showInitialLoginScreen() {
         signInWithGoogleButton.visibility = View.VISIBLE
         guestButton.visibility = View.VISIBLE
+        profileIcon.visibility = View.GONE
+        settingsIcon.visibility = View.GONE
+        welcomeTextView.visibility = View.GONE
+        startGameButton.visibility = View.GONE
     }
 
     private fun hideGameUI() {
